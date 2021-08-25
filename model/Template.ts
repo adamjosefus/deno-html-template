@@ -91,7 +91,7 @@ export class Template {
     render(templatePath: string, templateParams: TemplateParamType = {}): string {
         const raw = Deno.readTextFileSync(templatePath);
 
-        const scriptContentReplace = /(?<openTag>\<script.+?\>)(?<scriptContent>.+?)(?<closeTag><\/script>)/gs;
+        const scriptContentReplace = /(?<openTag>\<script.*?\>)(?<scriptContent>.+?)(?<closeTag><\/script>)/gs;
 
         const sliceIndexes: number[] = [];
 
