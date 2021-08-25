@@ -176,7 +176,7 @@ export class Template {
             const value = (() => {
                 if (paramInput) {
                     if (paramArgs !== null) {
-                        if (typeof paramInput === 'function') return paramInput(paramArgs);
+                        if (typeof paramInput === 'function') return paramInput(...paramArgs);
                         else throw new Error(`Param "${paramName}" is not a function.`);
                     } else return paramInput;
                 } else throw new Error(`Param "${paramName}" has no value.`);
