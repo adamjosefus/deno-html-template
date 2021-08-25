@@ -182,12 +182,12 @@ export class Template {
             // Value
             // TODO: Opravit volán funkce bez parametru
             const value = (() => {
-                if (paramInput) {
+                if (paramInput !== undefined) {
                     if (paramArgs !== null) {
                         if (typeof paramInput === 'function') return paramInput(...paramArgs);
                         else throw new Error(`Param "${paramName}" is not a function.`);
                     } else return paramInput;
-                } else throw new Error(`Param "${paramName}" has no value.`);
+                } else throw new Error(`Value of param "${paramName}" is undefined.`);
             })()
 
 
