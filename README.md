@@ -1,6 +1,6 @@
 # deno-html-template
 
-Knihovna na zpracovávání `html` stringů. UmožnŃuje přidavat proměnné, ty escapovat a filtrovat.
+Knihovna na zpracovávání `html` stringů. Umožňuje přidavat proměnné, ty escapovat a filtrovat.
 
 ```ts
 // main.ts
@@ -26,7 +26,7 @@ const s = tm.render('./template.html', {
 
 {$myValue}
 
-<script src="{$addSalt('my-path-to-file.js')}"></script>
+<script src='{$addSalt("my-path-to-file.js")}'></script>
 
 </body>
 </html>

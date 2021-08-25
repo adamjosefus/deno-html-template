@@ -3,6 +3,7 @@ import { HtmlContentPart, html } from "./HtmlContentPart.ts";
 import { JsContentPart, js } from "./JsContentPart.ts";
 export { html } from "./HtmlContentPart.ts";
 export { js } from "./JsContentPart.ts";
+import { Marked as Markdown } from "https://deno.land/x/markdown/mod.ts";
 
 
 // deno-lint-ignore-file
@@ -39,6 +40,14 @@ export class Template {
             return this._createContentPartByContext(ctx, s);
         });
 
+        this._addNormalizedFilter('json', (_ctx: RenderingContext, s: any) => {
+            return this._createContentPartByContext(RenderingContext.JS, JSON.stringify(s));
+        });
+
+        this._addNormalizedFilter('markdown', (_ctx: RenderingContext, s: any) => {
+            return this._createContentPartByContext(RenderingContext.HTML, Markdown.parse(s).content);
+        });
+
         this.addFilter('trim', (s: string) => s.trim());
 
         this.addFilter('lower', (s: string) => s.toLowerCase());
@@ -47,9 +56,6 @@ export class Template {
 
         this.addFilter('firstUpper', (s: string) => s.substring(0, 1).toUpperCase() + s.substring(1));
 
-        this._addNormalizedFilter('json', (ctx: RenderingContext, s: any) => {
-            return this._createContentPartByContext(RenderingContext.JS, JSON.stringify(s));
-        });
     }
 
 
@@ -182,12 +188,12 @@ export class Template {
             // Value
             // TODO: Opravit volán funkce bez parametru
             const value = (() => {
-                if (paramInput) {
+                if (paramInput !== undefined) {
                     if (paramArgs !== null) {
                         if (typeof paramInput === 'function') return paramInput(...paramArgs);
                         else throw new Error(`Param "${paramName}" is not a function.`);
                     } else return paramInput;
-                } else throw new Error(`Param "${paramName}" has no value.`);
+                } else throw new Error(`Value of param "${paramName}" is undefined.`);
             })()
 
 
