@@ -1,6 +1,6 @@
 # deno-html-template
 
-Knihovna na zpracovávání `html` stringů. UmožnŃuje přidavat proměnné, ty escapovat a filtrovat.
+Knihovna na zpracovávání `html` stringů. Umožňuje přidavat proměnné, ty escapovat a filtrovat.
 
 ```ts
 // main.ts
