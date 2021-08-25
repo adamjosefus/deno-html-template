@@ -26,7 +26,7 @@ const s = tm.render('./template.html', {
 
 {$myValue}
 
-<script src="{$addSalt('my-path-to-file.js')}"></script>
+<script src='{$addSalt("my-path-to-file.js")}'></script>
 
 </body>
 </html>
