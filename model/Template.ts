@@ -38,10 +38,18 @@ export class Template {
         this._addNormalizedFilter('noescape', (ctx: RenderingContext, s: string) => {
             return this._createContentPartByContext(ctx, s);
         });
+
         this.addFilter('trim', (s: string) => s.trim());
+
         this.addFilter('lower', (s: string) => s.toLowerCase());
+
         this.addFilter('upper', (s: string) => s.toUpperCase());
+
         this.addFilter('firstUpper', (s: string) => s.substring(0, 1).toUpperCase() + s.substring(1));
+
+        this._addNormalizedFilter('json', (ctx: RenderingContext, s: any) => {
+            return this._createContentPartByContext(RenderingContext.JS, JSON.stringify(s));
+        });
     }
 
 
@@ -91,7 +99,7 @@ export class Template {
     render(templatePath: string, templateParams: TemplateParamType = {}): string {
         const raw = Deno.readTextFileSync(templatePath);
 
-        const scriptContentReplace = /(?<openTag>\<script.+?\>)(?<scriptContent>.+?)(?<closeTag><\/script>)/gs;
+        const scriptContentReplace = /(?<openTag>\<script.*?\>)(?<scriptContent>.+?)(?<closeTag><\/script>)/gs;
 
         const sliceIndexes: number[] = [];
 
