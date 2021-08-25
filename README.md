@@ -3,6 +3,8 @@
 Knihovna na zpracovávání `html` stringů. UmožnŃuje přidavat proměnné, ty escapovat a filtrovat.
 
 ```ts
+// main.ts
+
 const engine = new Template();
 
 const s = tm.render('./template.html', {
@@ -14,6 +16,7 @@ const s = tm.render('./template.html', {
 
 ```html
 <!-- template.html -->
+
 <!DOCTYPE html>
 <html lang="cs">
 <head>
