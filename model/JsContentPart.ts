@@ -2,7 +2,7 @@ import { ContentPart } from "./ContentPart.ts";
 
 export class JsContentPart extends ContentPart {
     
-    escape(s: string): string {
+    escape(s: any): string {
         return JSON.stringify(s);
     }
 
@@ -14,13 +14,13 @@ export class JsContentPart extends ContentPart {
             const base = this._bases[i];
             acc.push(base);
 
-            if (this._values[i]) {
+            if (this._values[i] !== undefined) {
                 const value = this._values[i];
 
                 if (value instanceof JsContentPart) {
                     acc.push(value.toString());
                 } else {
-                    acc.push(this.escape(value.toString()));
+                    acc.push(this.escape(value));
                 }
             }
         }

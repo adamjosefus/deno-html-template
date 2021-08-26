@@ -7,7 +7,7 @@ export abstract class ContentPart {
         this._values = values;
     }
 
-    abstract escape(s: string): string;
+    abstract escape(s: any): string;
 
     abstract toString(): string;
 }

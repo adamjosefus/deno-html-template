@@ -2,8 +2,9 @@ import { ContentPart } from "./ContentPart.ts";
 
 export class HtmlContentPart extends ContentPart {
 
-    escape(s: string): string {
+    escape(s: any): string {
         return s
+            .toString()
             .replace(/&/g, '&amp;')
             .replace(/</g, '&lt;')
             .replace(/>/g, '&gt;')
@@ -19,13 +20,13 @@ export class HtmlContentPart extends ContentPart {
             const base = this._bases[i];
             acc.push(base);
 
-            if (this._values[i]) {
+            if (this._values[i] !== undefined) {
                 const value = this._values[i];
 
                 if (value instanceof HtmlContentPart) {
                     acc.push(value.toString());
                 } else {
-                    acc.push(this.escape(value.toString()));
+                    acc.push(this.escape(value));
                 }
             }
         }
