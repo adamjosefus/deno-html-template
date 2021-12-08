@@ -33,6 +33,9 @@ const enum RenderingContext {
 
 
 export class Template {
+
+    private readonly scriptContentParser = /(?<openTag>\<script.*?\>)(?<scriptContent>.+?)(?<closeTag><\/script>)/gs;
+
     private _filters: FilterListType = [];
 
 
@@ -50,13 +53,9 @@ export class Template {
         });
 
         this.addFilter('trim', (s: string) => s.trim());
-
         this.addFilter('lower', (s: string) => s.toLowerCase());
-
         this.addFilter('upper', (s: string) => s.toUpperCase());
-
         this.addFilter('firstUpper', (s: string) => s.substring(0, 1).toUpperCase() + s.substring(1));
-
     }
 
 
@@ -106,14 +105,14 @@ export class Template {
     render(templatePath: string, templateParams: TemplateParamType = {}): string {
         const raw = Deno.readTextFileSync(templatePath);
 
-        const scriptContentReplace = /(?<openTag>\<script.*?\>)(?<scriptContent>.+?)(?<closeTag><\/script>)/gs;
-
         const sliceIndexes: number[] = [];
 
         const scriptContents: string[] = []
 
+        this.scriptContentParser.lastIndex = 0;
+
         // TODO: Metoda "replace" nedává smysl. Nijak se neodchytává výsledný string. Absolutně by stačil while cyklus s exec regulárním výrazem. Jen jsem neměl odvahu to teď v noci měnit.
-        raw.replace(scriptContentReplace, (substring: string, g1: string, g2: string, g3: string, i: number, all: string, groups: any, ...exec: any[]) => {
+        raw.replace(this.scriptContentParser, (substring: string, g1: string, g2: string, g3: string, i: number, all: string, groups: any, ...exec: any[]) => {
             const openTagGroup = groups.openTag as string;
             const scriptContentGroup = groups.scriptContent as string;
 
