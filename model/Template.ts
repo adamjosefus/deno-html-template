@@ -34,7 +34,7 @@ const enum RenderingContext {
 
 export class Template {
 
-    private readonly scriptContentParser = /(?<openTag>\<script.*?\>)(?<scriptContent>.+?)(?<closeTag><\/script>)/gs;
+    private readonly scriptElementParser = /(?<openTag>\<script.*?\>)(?<content>.+?)(?<closeTag><\/script>)/gs;
 
     private _filters: FilterListType = [];
 
@@ -106,12 +106,12 @@ export class Template {
         const raw = Deno.readTextFileSync(templatePath);
 
         const sliceIndexes: number[] = [];
+        const scriptContents: string[] = [];
 
-        const scriptContents: string[] = []
-
-        this.scriptContentParser.lastIndex = 0;
+        // this.scriptContentParser.lastIndex = 0;
 
         // TODO: Metoda "replace" nedává smysl. Nijak se neodchytává výsledný string. Absolutně by stačil while cyklus s exec regulárním výrazem. Jen jsem neměl odvahu to teď v noci měnit.
+        /*
         raw.replace(this.scriptContentParser, (substring: string, g1: string, g2: string, g3: string, i: number, all: string, groups: any, ...exec: any[]) => {
             const openTagGroup = groups.openTag as string;
             const scriptContentGroup = groups.scriptContent as string;
@@ -126,6 +126,27 @@ export class Template {
             scriptContents.push(result);
             return result;
         });
+        */
+
+        (() => {
+            this.scriptElementParser.lastIndex = 0;
+
+            let result: RegExpExecArray | null = null
+
+            while ((result = this.scriptElementParser.exec(raw)) !== null) {
+                const offset = this.scriptElementParser.lastIndex;
+
+                const { openTag, content, closeTag } = result.groups as Record<string, string>;
+
+                const sliceStartsAt = offset + openTag.length;
+                const sliceEndsAt = offset + openTag.length + content.length;
+
+                sliceIndexes.push(sliceStartsAt, sliceEndsAt);
+                scriptContents.push(content);
+            }
+        })()
+
+
 
         const htmlContents = ((s, borders) => {
             const arr: string[] = [];
