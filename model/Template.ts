@@ -1,3 +1,4 @@
+import { TemplateError } from "./TemplateError.ts";
 import { ContentPart } from "./ContentPart.ts";
 import { HtmlContentPart, html } from "./HtmlContentPart.ts";
 import { JsContentPart, js } from "./JsContentPart.ts";
@@ -68,7 +69,7 @@ export class Template {
                 return new JsContentPart(bases, values);
 
             default:
-                throw new Error(`Unknown renderning context "${context}"`);
+                throw new TemplateError(`Unknown renderning context "${context}"`);
         }
     }
 
@@ -79,7 +80,7 @@ export class Template {
 
 
     private _addNormalizedFilter(name: string, callback: FilterNormalizedCallbackType): void {
-        if (this._hasFilter(name)) throw new Error(`Filter "${name}" is already exists.`);
+        if (this._hasFilter(name)) throw new TemplateError(`Filter "${name}" is already exists.`);
 
         this._filters.push({ name, callback });
     }
@@ -93,7 +94,7 @@ export class Template {
     private _getFilter(name: string): FilterNormalizedCallbackType {
         if (this._hasFilter(name)) {
             return this._findFilterItem(name)!.callback
-        } else throw new Error(`Filter not found by name "${name}".`);
+        } else throw new TemplateError(`Filter not found by name "${name}".`);
     }
 
 
@@ -111,7 +112,7 @@ export class Template {
 
         const scriptContents: string[] = []
 
-        // TODO: Metoda "reaplce" nedává smysl. Nijak se neodchytává výsledný string. Absolutně by stašil while cyklus s exec regulárním výrazem. Jen jsem neměl odvahu to teď v novi měnit.
+        // TODO: Metoda "replace" nedává smysl. Nijak se neodchytává výsledný string. Absolutně by stačil while cyklus s exec regulárním výrazem. Jen jsem neměl odvahu to teď v noci měnit.
         raw.replace(scriptContentReplace, (substring: string, g1: string, g2: string, g3: string, i: number, all: string, groups: any, ...exec: any[]) => {
             const openTagGroup = groups.openTag as string;
             const scriptContentGroup = groups.scriptContent as string;
@@ -190,9 +191,9 @@ export class Template {
                 if (paramInput !== undefined) {
                     if (paramArgs !== null) {
                         if (typeof paramInput === 'function') return paramInput(...paramArgs);
-                        else throw new Error(`Param "${paramName}" is not a function.`);
+                        else throw new TemplateError(`Param "${paramName}" is not a function.`);
                     } else return paramInput;
-                } else throw new Error(`Param "${paramName}" has no value.`);
+                } else throw new TemplateError(`Param "${paramName}" has no value.`);
             })()
 
 
@@ -222,7 +223,7 @@ export class Template {
                     case RenderingContext.JS:
                         return js`${s}`;
 
-                    default: throw new Error(`Unknown renderning context "${context}"`);
+                    default: throw new TemplateError(`Unknown renderning context "${context}"`);
                 }
             })(raw)
 
