@@ -112,7 +112,7 @@ export class Template {
 
         const scriptContents: string[] = []
 
-        // TODO: Metoda "reaplce" nedává smysl. Nijak se neodchytává výsledný string. Absolutně by stašil while cyklus s exec regulárním výrazem. Jen jsem neměl odvahu to teď v novi měnit.
+        // TODO: Metoda "replace" nedává smysl. Nijak se neodchytává výsledný string. Absolutně by stačil while cyklus s exec regulárním výrazem. Jen jsem neměl odvahu to teď v noci měnit.
         raw.replace(scriptContentReplace, (substring: string, g1: string, g2: string, g3: string, i: number, all: string, groups: any, ...exec: any[]) => {
             const openTagGroup = groups.openTag as string;
             const scriptContentGroup = groups.scriptContent as string;
