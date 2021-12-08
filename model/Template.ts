@@ -105,8 +105,8 @@ export class Template {
     render(templatePath: string, templateParams: TemplateParamType = {}): string {
         const raw = Deno.readTextFileSync(templatePath);
 
-        const sliceIndexes: number[] = [];
-        const scriptContents: string[] = [];
+        // const sliceIndexes: number[] = [];
+        // const scriptContents: string[] = [];
 
         // this.scriptContentParser.lastIndex = 0;
 
@@ -128,11 +128,13 @@ export class Template {
         });
         */
 
-        (() => {
-            this.scriptElementParser.lastIndex = 0;
+        const [sliceIndexes, scriptContents] = ((): [number[], string[]] => {
+            const _sliceIndexes: number[] = [];
+            const _scriptContents: string[] = [];
 
             let result: RegExpExecArray | null = null
 
+            this.scriptElementParser.lastIndex = 0;
             while ((result = this.scriptElementParser.exec(raw)) !== null) {
                 const offset = this.scriptElementParser.lastIndex;
 
@@ -141,9 +143,11 @@ export class Template {
                 const sliceStartsAt = offset + openTag.length;
                 const sliceEndsAt = offset + openTag.length + content.length;
 
-                sliceIndexes.push(sliceStartsAt, sliceEndsAt);
-                scriptContents.push(content);
+                _sliceIndexes.push(sliceStartsAt, sliceEndsAt);
+                _scriptContents.push(content);
             }
+
+            return [_sliceIndexes, _scriptContents];
         })()
 
 
