@@ -33,6 +33,10 @@ const enum RenderingContext {
 
 
 export class Template {
+
+    private readonly scriptElementParser = /(?<openTag>\<script.*?\>)(?<content>.*?)(?<closeTag><\/script>)/gs;
+    private readonly paramsParser = /\{\$(?<name>[a-z_]+[A-z0-9_]*)(\((?<args>.*)\)){0,1}(?<filters>(\|[a-z_]+)*)\}/gi;
+
     private _filters: FilterListType = [];
 
 
@@ -50,13 +54,9 @@ export class Template {
         });
 
         this.addFilter('trim', (s: string) => s.trim());
-
         this.addFilter('lower', (s: string) => s.toLowerCase());
-
         this.addFilter('upper', (s: string) => s.toUpperCase());
-
         this.addFilter('firstUpper', (s: string) => s.substring(0, 1).toUpperCase() + s.substring(1));
-
     }
 
 
@@ -104,68 +104,64 @@ export class Template {
 
 
     render(templatePath: string, templateParams: TemplateParamType = {}): string {
-        const raw = Deno.readTextFileSync(templatePath);
+        const source = Deno.readTextFileSync(templatePath);
 
-        const scriptContentReplace = /(?<openTag>\<script.*?\>)(?<scriptContent>.+?)(?<closeTag><\/script>)/gs;
+        const [sliceIndexes, scriptContents] = (() => {
+            const slices: number[] = [];
+            const contents: string[] = [];
 
-        const sliceIndexes: number[] = [];
+            let result: RegExpExecArray | null = null
 
-        const scriptContents: string[] = []
+            this.scriptElementParser.lastIndex = 0;
+            while ((result = this.scriptElementParser.exec(source)) !== null) {
+                const { openTag, content, closeTag } = result.groups as Record<string, string>;
+                const offset = this.scriptElementParser.lastIndex - (openTag.length + content.length + closeTag.length);
 
-        // TODO: Metoda "replace" nedává smysl. Nijak se neodchytává výsledný string. Absolutně by stačil while cyklus s exec regulárním výrazem. Jen jsem neměl odvahu to teď v noci měnit.
-        raw.replace(scriptContentReplace, (substring: string, g1: string, g2: string, g3: string, i: number, all: string, groups: any, ...exec: any[]) => {
-            const openTagGroup = groups.openTag as string;
-            const scriptContentGroup = groups.scriptContent as string;
+                const sliceStartsAt = offset + openTag.length;
+                const sliceEndsAt = sliceStartsAt + content.length;
 
-            const contentStart = i + openTagGroup.length;
-            const contentEnd = i + openTagGroup.length + scriptContentGroup.length;
-
-            sliceIndexes.push(contentStart, contentEnd);
-
-            const result = scriptContentGroup;
-
-            scriptContents.push(result);
-            return result;
-        });
-
-        const htmlContents = ((s, borders) => {
-            const arr: string[] = [];
-
-            for (let i = 0; i < borders.length; i += 2) {
-                const start = borders[i];
-                const end = borders[i + 1];
-
-                arr.push(s.substring(start, end));
+                slices.push(sliceStartsAt, sliceEndsAt);
+                contents.push(content);
             }
 
-            return arr;
-        })(raw, [0, ...sliceIndexes])
+            return [slices, contents] as [number[], string[]];
+        })()
+
+        const htmlContents = ((s, slices) => {
+            const buffer: string[] = [];
+
+            for (let i = 0; i < slices.length; i += 2) {
+                const start = slices[i];
+                const end = slices[i + 1];
+
+                buffer.push(s.substring(start, end));
+            }
+
+            return buffer;
+        })(source, [0, ...sliceIndexes])
 
 
         const final = (() => {
-            const arr: string[] = [];
+            const buffer: string[] = [];
 
-            for (let i = 0; i < htmlContents.length; i++) {
+            for (let i = 0; i < Math.max(htmlContents.length, scriptContents.length); i++) {
                 const html = htmlContents[i];
-                arr.push(this._processRenderString(RenderingContext.HTML, html, templateParams));
+                if (html) buffer.push(this._processRenderString(RenderingContext.HTML, html, templateParams));
 
-                if (scriptContents[i]) {
-                    const js = scriptContents[i];
-                    arr.push(this._processRenderString(RenderingContext.JS, js, templateParams));
-                }
+                const js = scriptContents[i];               
+                if (js) buffer.push(this._processRenderString(RenderingContext.JS, js, templateParams));
             }
 
-            return arr.join('');
-        })()
+            return buffer.join('');
+        })();
 
         return final;
     }
 
 
     private _processRenderString(context: RenderingContext, s: string, templateParams: TemplateParamType = {}) {
-        const paramsReplacer = /\{\$(?<name>[a-z_]+[A-z0-9_]*)(\((?<args>.*)\)){0,1}(?<filters>(\|[a-z_]+)*)\}/gi;
-
-        return s.replace(paramsReplacer, (_match: string, ...exec: any[]) => {
+        this.paramsParser.lastIndex = 0;
+        const final = s.replace(this.paramsParser, (_match: string, ...exec: any[]) => {
             const [_g1, _g2, _g3, _g4, _g5, _pos, _content, groups] = exec;
             const paramName = groups.name as string;
 
@@ -196,7 +192,6 @@ export class Template {
                 } else throw new TemplateError(`Param "${paramName}" has no value.`);
             })()
 
-
             // Filters
             const filters = ((names) => {
                 const arr = names.reduce((acc: FilterNormalizedCallbackType[], n) => {
@@ -225,9 +220,11 @@ export class Template {
 
                     default: throw new TemplateError(`Unknown renderning context "${context}"`);
                 }
-            })(raw)
+            })(raw);
 
             return contentPart.toString();
         });
+
+        return final;
     }
 }
