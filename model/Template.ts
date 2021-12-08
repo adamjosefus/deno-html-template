@@ -105,7 +105,6 @@ export class Template {
     render(templatePath: string, templateParams: TemplateParamType = {}): string {
         const source = Deno.readTextFileSync(templatePath);
 
-
         const [sliceIndexes, scriptContents] = (() => {
             const slices: number[] = [];
             const contents: string[] = [];
@@ -128,7 +127,6 @@ export class Template {
             return [slices, contents] as [number[], string[]];
         })()
 
-
         const htmlContents = ((s, borders) => {
             const arr: string[] = [];
 
@@ -141,7 +139,6 @@ export class Template {
 
             return arr;
         })(source, [0, ...sliceIndexes])
-
 
         const final = (() => {
             const arr: string[] = [];
