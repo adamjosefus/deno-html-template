@@ -35,7 +35,7 @@ const enum RenderingContext {
 export class Template {
 
     private readonly scriptElementParser = /(?<openTag>\<script.*?\>)(?<content>.*?)(?<closeTag><\/script>)/gs;
-    private readonly paramsParser = /\{\$(?<name>[a-z_]+[A-z0-9_]*)(\((?<args>.*)\)){0,1}(?<filters>(\|[a-z_]+)*)\}/gi;
+    private readonly paramsParser = /(?<quote>"|'|)\{\$(?<name>[a-z_]+[A-z0-9_]*)(\((?<args>.*)\)){0,1}(?<filters>(\|[a-z_]+)*)\}\1/gi;
 
     private _filters: FilterListType = [];
 
@@ -162,7 +162,7 @@ export class Template {
     private _processRenderString(context: RenderingContext, s: string, templateParams: TemplateParamType = {}) {
         this.paramsParser.lastIndex = 0;
         const final = s.replace(this.paramsParser, (_match: string, ...exec: any[]) => {
-            const [_g1, _g2, _g3, _g4, _g5, _pos, _content, groups] = exec;
+            const [_g1, _g2, _g3, _g4, _g5, _g6, _pos, _content, groups] = exec;
             const paramName = groups.name as string;
 
             const paramFilters: string[] = ((s) => {
@@ -213,7 +213,7 @@ export class Template {
             const contentPart = ((s) => {
                 switch (context) {
                     case RenderingContext.HTML:
-                        return html`${s}`;
+                        return html`"${s}"`;
 
                     case RenderingContext.JS:
                         return js`${s}`;
