@@ -103,39 +103,17 @@ export class Template {
 
 
     render(templatePath: string, templateParams: TemplateParamType = {}): string {
-        const raw = Deno.readTextFileSync(templatePath);
+        const source = Deno.readTextFileSync(templatePath);
 
-        // const sliceIndexes: number[] = [];
-        // const scriptContents: string[] = [];
 
-        // this.scriptContentParser.lastIndex = 0;
-
-        // TODO: Metoda "replace" nedává smysl. Nijak se neodchytává výsledný string. Absolutně by stačil while cyklus s exec regulárním výrazem. Jen jsem neměl odvahu to teď v noci měnit.
-        /*
-        raw.replace(this.scriptContentParser, (substring: string, g1: string, g2: string, g3: string, i: number, all: string, groups: any, ...exec: any[]) => {
-            const openTagGroup = groups.openTag as string;
-            const scriptContentGroup = groups.scriptContent as string;
-
-            const contentStart = i + openTagGroup.length;
-            const contentEnd = i + openTagGroup.length + scriptContentGroup.length;
-
-            sliceIndexes.push(contentStart, contentEnd);
-
-            const result = scriptContentGroup;
-
-            scriptContents.push(result);
-            return result;
-        });
-        */
-
-        const [sliceIndexes, scriptContents] = ((): [number[], string[]] => {
-            const _sliceIndexes: number[] = [];
-            const _scriptContents: string[] = [];
+        const [sliceIndexes, scriptContents] = (() => {
+            const slices: number[] = [];
+            const contents: string[] = [];
 
             let result: RegExpExecArray | null = null
 
             this.scriptElementParser.lastIndex = 0;
-            while ((result = this.scriptElementParser.exec(raw)) !== null) {
+            while ((result = this.scriptElementParser.exec(source)) !== null) {
                 const offset = this.scriptElementParser.lastIndex;
 
                 const { openTag, content, closeTag } = result.groups as Record<string, string>;
@@ -143,13 +121,12 @@ export class Template {
                 const sliceStartsAt = offset + openTag.length;
                 const sliceEndsAt = offset + openTag.length + content.length;
 
-                _sliceIndexes.push(sliceStartsAt, sliceEndsAt);
-                _scriptContents.push(content);
+                slices.push(sliceStartsAt, sliceEndsAt);
+                contents.push(content);
             }
 
-            return [_sliceIndexes, _scriptContents];
+            return [slices, contents] as [number[], string[]];
         })()
-
 
 
         const htmlContents = ((s, borders) => {
@@ -163,7 +140,7 @@ export class Template {
             }
 
             return arr;
-        })(raw, [0, ...sliceIndexes])
+        })(source, [0, ...sliceIndexes])
 
 
         const final = (() => {
