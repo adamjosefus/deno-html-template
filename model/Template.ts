@@ -34,7 +34,8 @@ const enum RenderingContext {
 
 export class Template {
 
-    private readonly scriptElementParser = /(?<openTag>\<script.*?\>)(?<content>.+?)(?<closeTag><\/script>)/gs;
+    private readonly scriptElementParser = /(?<openTag>\<script.*?\>)(?<content>.*?)(?<closeTag><\/script>)/gs;
+    private readonly paramsParser = /\{\$(?<name>[a-z_]+[A-z0-9_]*)(\((?<args>.*)\)){0,1}(?<filters>(\|[a-z_]+)*)\}/gi;
 
     private _filters: FilterListType = [];
 
@@ -161,9 +162,8 @@ export class Template {
 
 
     private _processRenderString(context: RenderingContext, s: string, templateParams: TemplateParamType = {}) {
-        const paramsReplacer = /\{\$(?<name>[a-z_]+[A-z0-9_]*)(\((?<args>.*)\)){0,1}(?<filters>(\|[a-z_]+)*)\}/gi;
-
-        return s.replace(paramsReplacer, (_match: string, ...exec: any[]) => {
+        this.paramsParser.lastIndex = 0;
+        const final = s.replace(this.paramsParser, (_match: string, ...exec: any[]) => {
             const [_g1, _g2, _g3, _g4, _g5, _pos, _content, groups] = exec;
             const paramName = groups.name as string;
 
@@ -194,7 +194,6 @@ export class Template {
                 } else throw new TemplateError(`Param "${paramName}" has no value.`);
             })()
 
-
             // Filters
             const filters = ((names) => {
                 const arr = names.reduce((acc: FilterNormalizedCallbackType[], n) => {
@@ -223,9 +222,12 @@ export class Template {
 
                     default: throw new TemplateError(`Unknown renderning context "${context}"`);
                 }
-            })(raw)
+            })(raw);
 
             return contentPart.toString();
         });
+
+        console.log(final);
+        return final;
     }
 }
