@@ -114,12 +114,11 @@ export class Template {
 
             this.scriptElementParser.lastIndex = 0;
             while ((result = this.scriptElementParser.exec(source)) !== null) {
-                const offset = this.scriptElementParser.lastIndex;
-
                 const { openTag, content, closeTag } = result.groups as Record<string, string>;
+                const offset = this.scriptElementParser.lastIndex - (openTag.length + content.length + closeTag.length);
 
                 const sliceStartsAt = offset + openTag.length;
-                const sliceEndsAt = offset + openTag.length + content.length;
+                const sliceEndsAt = sliceStartsAt + content.length;
 
                 slices.push(sliceStartsAt, sliceEndsAt);
                 contents.push(content);
@@ -128,34 +127,33 @@ export class Template {
             return [slices, contents] as [number[], string[]];
         })()
 
-        const htmlContents = ((s, borders) => {
-            const arr: string[] = [];
+        const htmlContents = ((s, slices) => {
+            const buffer: string[] = [];
 
-            for (let i = 0; i < borders.length; i += 2) {
-                const start = borders[i];
-                const end = borders[i + 1];
+            for (let i = 0; i < slices.length; i += 2) {
+                const start = slices[i];
+                const end = slices[i + 1];
 
-                arr.push(s.substring(start, end));
+                buffer.push(s.substring(start, end));
             }
 
-            return arr;
+            return buffer;
         })(source, [0, ...sliceIndexes])
 
+
         const final = (() => {
-            const arr: string[] = [];
+            const buffer: string[] = [];
 
-            for (let i = 0; i < htmlContents.length; i++) {
+            for (let i = 0; i < Math.max(htmlContents.length, scriptContents.length); i++) {
                 const html = htmlContents[i];
-                arr.push(this._processRenderString(RenderingContext.HTML, html, templateParams));
+                if (html) buffer.push(this._processRenderString(RenderingContext.HTML, html, templateParams));
 
-                if (scriptContents[i]) {
-                    const js = scriptContents[i];
-                    arr.push(this._processRenderString(RenderingContext.JS, js, templateParams));
-                }
+                const js = scriptContents[i];               
+                if (js) buffer.push(this._processRenderString(RenderingContext.JS, js, templateParams));
             }
 
-            return arr.join('');
-        })()
+            return buffer.join('');
+        })();
 
         return final;
     }
@@ -227,7 +225,6 @@ export class Template {
             return contentPart.toString();
         });
 
-        console.log(final);
         return final;
     }
 }
