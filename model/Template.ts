@@ -7,16 +7,18 @@ export { js } from "./JsContentPart.ts";
 import { Marked as Markdown } from "https://deno.land/x/markdown/mod.ts";
 
 
-// deno-lint-ignore-file
 type TemplateParamType = {
+    // deno-lint-ignore no-explicit-any
     [name: string]: any
 }
 
 type FilterCallbackType = {
+    // deno-lint-ignore no-explicit-any
     (...args: any[]): any;
 }
 
 type FilterNormalizedCallbackType = {
+    // deno-lint-ignore no-explicit-any
     (context: RenderingContext, ...args: any[]): any;
 }
 
@@ -60,6 +62,7 @@ export class Template {
     }
 
 
+    // deno-lint-ignore no-explicit-any
     private _createContentPartByContext(context: RenderingContext, bases: string[] | string, values: any[] = []): ContentPart {
         switch (context) {
             case RenderingContext.HTML:
@@ -148,7 +151,7 @@ export class Template {
                 const html = htmlContents[i];
                 if (html) buffer.push(this._processRenderString(RenderingContext.HTML, html, templateParams));
 
-                const js = scriptContents[i];               
+                const js = scriptContents[i];
                 if (js) buffer.push(this._processRenderString(RenderingContext.JS, js, templateParams));
             }
 
@@ -161,9 +164,11 @@ export class Template {
 
     private _processRenderString(context: RenderingContext, s: string, templateParams: TemplateParamType = {}) {
         this.paramsParser.lastIndex = 0;
+        // deno-lint-ignore no-explicit-any
         const final = s.replace(this.paramsParser, (_match: string, ...exec: any[]) => {
             const [_g1, _g2, _g3, _g4, _g5, _g6, _pos, _content, groups] = exec;
             const paramName = groups.name as string;
+            const quote = (s => s.length > 0 ? s : null)(groups.quote as string);
 
             const paramFilters: string[] = ((s) => {
                 return s
@@ -176,6 +181,7 @@ export class Template {
             const paramInput = templateParams[paramName];
 
             // Args
+            // deno-lint-ignore no-explicit-any
             const paramArgs: any[] | null = ((s: string | undefined) => {
                 if (s !== undefined) return JSON.parse(`[${s}]`);
                 else return null;
@@ -213,7 +219,8 @@ export class Template {
             const contentPart = ((s) => {
                 switch (context) {
                     case RenderingContext.HTML:
-                        return html`"${s}"`;
+                        if (quote !== null) return html`"${s}"`;
+                        else return html`${s}`;
 
                     case RenderingContext.JS:
                         return js`${s}`;
