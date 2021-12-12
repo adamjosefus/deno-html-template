@@ -7,10 +7,9 @@ export { js } from "./JsContentPart.ts";
 import { Marked as Markdown } from "https://deno.land/x/markdown/mod.ts";
 
 
-type TemplateParamType = {
-    // deno-lint-ignore no-explicit-any
-    [name: string]: any
-}
+// deno-lint-ignore no-explicit-any
+type TemplateParamType = Record<string, any>;
+
 
 type FilterCallbackType = {
     // deno-lint-ignore no-explicit-any
@@ -107,6 +106,11 @@ export class Template {
 
 
     render(templatePath: string, templateParams: TemplateParamType = {}): string {
+        return this._render(templatePath, templateParams);
+    }
+
+
+    private _render(templatePath: string, templateParams: TemplateParamType = {}): string {
         const source = Deno.readTextFileSync(templatePath);
 
         const [sliceIndexes, scriptContents] = (() => {
@@ -143,8 +147,7 @@ export class Template {
             return buffer;
         })(source, [0, ...sliceIndexes])
 
-
-        const final = (() => {
+        const output = (() => {
             const buffer: string[] = [];
 
             for (let i = 0; i < Math.max(htmlContents.length, scriptContents.length); i++) {
@@ -158,7 +161,7 @@ export class Template {
             return buffer.join('');
         })();
 
-        return final;
+        return output;
     }
 
 
