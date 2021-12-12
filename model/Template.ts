@@ -8,7 +8,7 @@ import { Marked as Markdown } from "https://deno.land/x/markdown/mod.ts";
 
 
 // deno-lint-ignore no-explicit-any
-type TemplateParamType = Record<string, any>;
+type TemplateParamsType = Record<string, any>;
 
 
 type FilterCallbackType = {
@@ -105,12 +105,23 @@ export class Template {
     }
 
 
-    render(templatePath: string, templateParams: TemplateParamType = {}): string {
-        return this._render(templatePath, templateParams);
+
+    private _render(htmlContents: string[], scriptContents: string[], templateParams: TemplateParamsType) {
+        const buffer: string[] = [];
+
+        for (let i = 0; i < Math.max(htmlContents.length, scriptContents.length); i++) {
+            const html = htmlContents[i];
+            if (html) buffer.push(this._processRenderString(RenderingContext.HTML, html, templateParams));
+
+            const js = scriptContents[i];
+            if (js) buffer.push(this._processRenderString(RenderingContext.JS, js, templateParams));
+        }
+
+        return buffer.join('');
     }
 
 
-    private _render(templatePath: string, templateParams: TemplateParamType = {}): string {
+    render(templatePath: string, templateParams: TemplateParamsType = {}): string {
         const source = Deno.readTextFileSync(templatePath);
 
         const [sliceIndexes, scriptContents] = (() => {
@@ -147,25 +158,12 @@ export class Template {
             return buffer;
         })(source, [0, ...sliceIndexes])
 
-        const output = (() => {
-            const buffer: string[] = [];
 
-            for (let i = 0; i < Math.max(htmlContents.length, scriptContents.length); i++) {
-                const html = htmlContents[i];
-                if (html) buffer.push(this._processRenderString(RenderingContext.HTML, html, templateParams));
-
-                const js = scriptContents[i];
-                if (js) buffer.push(this._processRenderString(RenderingContext.JS, js, templateParams));
-            }
-
-            return buffer.join('');
-        })();
-
-        return output;
+        return this._render(htmlContents, scriptContents, templateParams);
     }
 
 
-    private _processRenderString(context: RenderingContext, s: string, templateParams: TemplateParamType = {}) {
+    private _processRenderString(context: RenderingContext, s: string, templateParams: TemplateParamsType = {}) {
         this.paramsParser.lastIndex = 0;
         // deno-lint-ignore no-explicit-any
         const final = s.replace(this.paramsParser, (_match: string, ...exec: any[]) => {
