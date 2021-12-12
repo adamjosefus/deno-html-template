@@ -2,8 +2,7 @@ import { TemplateError } from "./TemplateError.ts";
 import { ContentPart } from "./ContentPart.ts";
 import { HtmlContentPart, html } from "./HtmlContentPart.ts";
 import { JsContentPart, js } from "./JsContentPart.ts";
-export { html } from "./HtmlContentPart.ts";
-export { js } from "./JsContentPart.ts";
+import { Cache } from "./Cache.ts";
 import { Marked as Markdown } from "https://deno.land/x/markdown/mod.ts";
 
 
@@ -27,10 +26,15 @@ type FilterListType = {
 }[];
 
 
-type TemplateContentType = {
+type ContentType = {
     htmlParts: string[],
     scriptParts: string[],
 };
+
+
+type FileCacheType<ValueType> = {
+    value: ValueType,
+}
 
 
 const enum RenderingContext {
@@ -45,7 +49,7 @@ export class Template {
     private readonly paramsParser = /(?<quote>"|'|)\{\$(?<name>[a-z_]+[A-z0-9_]*)(\((?<args>.*)\)){0,1}(?<filters>(\|[a-z_]+)*)\}\1/gi;
 
     private _filters: FilterListType = [];
-    private _cache: Record<string, TemplateContentType> = {};
+    private _contentCache = new Cache<ContentType>();
 
 
     constructor() {
@@ -136,9 +140,12 @@ export class Template {
     }
 
 
-    private _getContent(templatePath: string): TemplateContentType {
+    private _getContent(templatePath: string): ContentType {
         const cached = this._loadCacheContent(templatePath);
         if (cached) return cached;
+
+        const stat = Deno.statSync(templatePath);
+        stat.mtime?.getTime() ?? 0;
 
         const created = this._createContent(templatePath);
         this._saveCacheContent(templatePath, created.htmlParts, created.scriptParts);
@@ -147,7 +154,7 @@ export class Template {
     }
 
 
-    private _createContent(templatePath: string): TemplateContentType {
+    private _createContent(templatePath: string): ContentType {
         const source = Deno.readTextFileSync(templatePath);
 
         const [sliceIndexes, scriptParts] = (() => {
@@ -192,12 +199,14 @@ export class Template {
 
 
     private _saveCacheContent(templatePath: string, htmlParts: string[], scriptParts: string[]): void {
-        this._cache[templatePath] = { htmlParts, scriptParts };
+        const stats = Deno.statSync(templatePath);
+        this._contentCache.save(templatePath, { htmlParts, scriptParts }, stats.mtime?.getTime());
     }
 
 
-    private _loadCacheContent(templatePath: string): TemplateContentType | null {
-        return (this._cache[templatePath] as TemplateContentType | undefined) ?? null;
+    private _loadCacheContent(templatePath: string): ContentType | null {
+        const stats = Deno.statSync(templatePath);
+        return this._contentCache.load(templatePath, stats.mtime?.getTime());
     }
 
 
