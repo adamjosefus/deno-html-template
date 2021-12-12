@@ -27,9 +27,9 @@ type FilterListType = {
 }[];
 
 
-type TemplateComponentType = {
-    htmlContents: string[],
-    scriptContents: string[],
+type TemplateContentType = {
+    htmlParts: string[],
+    scriptParts: string[],
 };
 
 
@@ -45,7 +45,7 @@ export class Template {
     private readonly paramsParser = /(?<quote>"|'|)\{\$(?<name>[a-z_]+[A-z0-9_]*)(\((?<args>.*)\)){0,1}(?<filters>(\|[a-z_]+)*)\}\1/gi;
 
     private _filters: FilterListType = [];
-    private _cache: Record<string, TemplateComponentType> = {};
+    private _cache: Record<string, TemplateContentType> = {};
 
 
     constructor() {
@@ -114,9 +114,9 @@ export class Template {
 
     // deno-lint-ignore no-explicit-any
     render(templatePath: string, templateParams: ParamsType<any> = {}): string {
-        const { htmlContents, scriptContents } = this._getRenderComponents(templatePath);
+        const { htmlParts, scriptParts } = this._getContent(templatePath);
 
-        return this._render(htmlContents, scriptContents, templateParams);
+        return this._render(htmlParts, scriptParts, templateParams);
     }
 
 
@@ -136,21 +136,21 @@ export class Template {
     }
 
 
-    private _getRenderComponents(templatePath: string): TemplateComponentType {
-        const cachedComponents = this._cache[templatePath] as TemplateComponentType | undefined;
-        if (cachedComponents) return cachedComponents;
+    private _getContent(templatePath: string): TemplateContentType {
+        const cached = this._loadCacheContent(templatePath);
+        if (cached) return cached;
 
-        const components = this._createRenderComponents(templatePath);
-        this._cache[templatePath] = components;
+        const created = this._createContent(templatePath);
+        this._saveCacheContent(templatePath, created.htmlParts, created.scriptParts);
 
-        return components;
+        return created;
     }
 
 
-    private _createRenderComponents(templatePath: string): TemplateComponentType {
+    private _createContent(templatePath: string): TemplateContentType {
         const source = Deno.readTextFileSync(templatePath);
 
-        const [sliceIndexes, scriptContents] = (() => {
+        const [sliceIndexes, scriptParts] = (() => {
             const slices: number[] = [];
             const contents: string[] = [];
 
@@ -171,7 +171,7 @@ export class Template {
             return [slices, contents] as [number[], string[]];
         })()
 
-        const htmlContents = ((s, slices) => {
+        const htmlParts = ((s, slices) => {
             const buffer: string[] = [];
 
             for (let i = 0; i < slices.length; i += 2) {
@@ -185,9 +185,19 @@ export class Template {
         })(source, [0, ...sliceIndexes])
 
         return {
-            htmlContents,
-            scriptContents
+            htmlParts,
+            scriptParts
         }
+    }
+
+
+    private _saveCacheContent(templatePath: string, htmlParts: string[], scriptParts: string[]): void {
+        this._cache[templatePath] = { htmlParts, scriptParts };
+    }
+
+
+    private _loadCacheContent(templatePath: string): TemplateContentType | null {
+        return (this._cache[templatePath] as TemplateContentType | undefined) ?? null;
     }
 
 
