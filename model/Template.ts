@@ -7,12 +7,11 @@ export { js } from "./JsContentPart.ts";
 import { Marked as Markdown } from "https://deno.land/x/markdown/mod.ts";
 
 
-type TemplateParamType = {
-    // deno-lint-ignore no-explicit-any
-    [name: string]: any
-}
+// deno-lint-ignore no-explicit-any
+export type ParamsType<ValueType> = Record<string, ValueType>;
 
-type FilterCallbackType = {
+
+export type FilterCallbackType = {
     // deno-lint-ignore no-explicit-any
     (...args: any[]): any;
 }
@@ -25,7 +24,13 @@ type FilterNormalizedCallbackType = {
 type FilterListType = {
     name: string,
     callback: FilterNormalizedCallbackType,
-}[]
+}[];
+
+
+type TemplateComponentType = {
+    htmlContents: string[],
+    scriptContents: string[],
+};
 
 
 const enum RenderingContext {
@@ -40,6 +45,7 @@ export class Template {
     private readonly paramsParser = /(?<quote>"|'|)\{\$(?<name>[a-z_]+[A-z0-9_]*)(\((?<args>.*)\)){0,1}(?<filters>(\|[a-z_]+)*)\}\1/gi;
 
     private _filters: FilterListType = [];
+    private _cache: Record<string, TemplateComponentType> = {};
 
 
     constructor() {
@@ -106,7 +112,42 @@ export class Template {
     }
 
 
-    render(templatePath: string, templateParams: TemplateParamType = {}): string {
+    // deno-lint-ignore no-explicit-any
+    render(templatePath: string, templateParams: ParamsType<any> = {}): string {
+        const { htmlContents, scriptContents } = this._getRenderComponents(templatePath);
+
+        return this._render(htmlContents, scriptContents, templateParams);
+    }
+
+
+    // deno-lint-ignore no-explicit-any
+    private _render(htmlContents: string[], scriptContents: string[], templateParams: ParamsType<any>) {
+        const buffer: string[] = [];
+
+        for (let i = 0; i < Math.max(htmlContents.length, scriptContents.length); i++) {
+            const html = htmlContents[i];
+            if (html) buffer.push(this._processRenderString(RenderingContext.HTML, html, templateParams));
+
+            const js = scriptContents[i];
+            if (js) buffer.push(this._processRenderString(RenderingContext.JS, js, templateParams));
+        }
+
+        return buffer.join('');
+    }
+
+
+    private _getRenderComponents(templatePath: string): TemplateComponentType {
+        const cachedComponents = this._cache[templatePath] as TemplateComponentType | undefined;
+        if (cachedComponents) return cachedComponents;
+
+        const components = this._createRenderComponents(templatePath);
+        this._cache[templatePath] = components;
+
+        return components;
+    }
+
+
+    private _createRenderComponents(templatePath: string): TemplateComponentType {
         const source = Deno.readTextFileSync(templatePath);
 
         const [sliceIndexes, scriptContents] = (() => {
@@ -143,26 +184,15 @@ export class Template {
             return buffer;
         })(source, [0, ...sliceIndexes])
 
-
-        const final = (() => {
-            const buffer: string[] = [];
-
-            for (let i = 0; i < Math.max(htmlContents.length, scriptContents.length); i++) {
-                const html = htmlContents[i];
-                if (html) buffer.push(this._processRenderString(RenderingContext.HTML, html, templateParams));
-
-                const js = scriptContents[i];
-                if (js) buffer.push(this._processRenderString(RenderingContext.JS, js, templateParams));
-            }
-
-            return buffer.join('');
-        })();
-
-        return final;
+        return {
+            htmlContents,
+            scriptContents
+        }
     }
 
 
-    private _processRenderString(context: RenderingContext, s: string, templateParams: TemplateParamType = {}) {
+    // deno-lint-ignore no-explicit-any
+    private _processRenderString(context: RenderingContext, s: string, templateParams: ParamsType<any> = {}) {
         this.paramsParser.lastIndex = 0;
         // deno-lint-ignore no-explicit-any
         const final = s.replace(this.paramsParser, (_match: string, ...exec: any[]) => {
